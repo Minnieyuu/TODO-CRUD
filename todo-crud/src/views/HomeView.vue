@@ -1,20 +1,42 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import axios from 'axios'
+import moment from 'moment'
+const api = ref('https://192.168.233.40/todo/api/Todo/')
 const isShowButton = ref(false)
 const AllData = ref([])
 const name = ref('')
 const title = ref('')
 const content = ref('')
 const todoId = ref('')
+const errorHandle = (error) => {
+  const { response } = error
+  const { status, data } = response
+  const { returnData } = data
+  let errorMsg = []
+  switch (status) {
+    case 400:
+      for (const [key, value] of Object.entries(returnData)) {
+        errorMsg.push(`${key}: ${value}`)
+      }
+      alert(errorMsg.join('\n'))
+      break
+
+    default:
+      console.log('default', data)
+      break
+  }
+}
+
 //查詢全部
 onMounted(async () => {
-  const response = await axios.get('https://192.168.233.40/todo/api/Todo/Get')
+  const response = await axios.get(`${api.value}Get`)
   console.log(response.data)
+
   AllData.value = [...response.data.returnData]
 })
 async function callFind() {
-  const response = await axios.get('https://192.168.233.40/todo/api/Todo/Get')
+  const response = await axios.get(`${api.value}Get`)
   AllData.value = [...response.data.returnData]
 }
 //新增
@@ -26,7 +48,7 @@ async function doCreate() {
   }
 
   try {
-    const response = await axios.post('https://192.168.233.40/todo/api/Todo/InsertTodo', req)
+    const response = await axios.post(`${api.value}InsertTodo`, req)
     if (response.data.returnCode == 2000) {
       alert('新增成功')
       name.value = ''
@@ -37,14 +59,13 @@ async function doCreate() {
       alert('新增失敗')
     }
   } catch (error) {
-    console.log(error)
-    alert('錯誤!請通知管理員')
+    errorHandle(error)
   }
 }
 //刪除
 async function doDelete(todoId) {
   try {
-    const response = await axios.delete(`https://192.168.233.40/todo/api/Todo/Delete/${todoId}`)
+    const response = await axios.delete(`${api.value}Delete/${todoId}`)
     console.log(response)
     if (response.data.returnCode == 2000) {
       alert('刪除成功')
@@ -54,7 +75,7 @@ async function doDelete(todoId) {
 
     await callFind()
   } catch (error) {
-    console.log(error)
+    console.error(error)
     alert('錯誤!請通知管理員')
   }
 }
@@ -65,10 +86,7 @@ async function isComplete(todoId) {
     isComplete: 'Y'
   }
   try {
-    const response = await axios.put(
-      `https://192.168.233.40/todo/api/Todo/UpdateTodoStatus/${todoId}`,
-      req
-    )
+    const response = await axios.put(`${api.value}UpdateTodoStatus/${todoId}`, req)
     if (response.data.returnCode == 2000) {
       alert(response.data.returnMessage)
       await callFind()
@@ -97,10 +115,7 @@ async function doUpdateSave() {
       title: title.value,
       todoContent: content.value
     }
-    const response = await axios.put(
-      `https://192.168.233.40/todo/api/Todo/UpdateTodoContent/${todoId.value}`,
-      req
-    )
+    const response = await axios.put(`${api.value}UpdateTodoContent/${todoId.value}`, req)
     if (response.data.returnMessage == '修改成功') {
       alert(response.data.returnMessage)
       name.value = ''
@@ -114,53 +129,97 @@ async function doUpdateSave() {
     }
   } catch (error) {
     console.log(error)
-    alert('錯誤!請通知管理員')
+    alert(error)
   }
 }
 </script>
 <template>
-  <div class="mb-3" style="width: 300px">
-    <h1>請填寫代辦事項</h1>
-    <label class="form-label">姓名</label>
-    <input type="test" class="form-control" v-model="name" />
-    <label for="exampleFormControlInput1" class="form-label">代辦標題</label>
-    <input type="test" class="form-control" v-model="title" />
-    <label class="form-label">代辦內容</label>
-    <textarea class="form-control" rows="3" v-model="content"></textarea><br />
-    <button type="button" class="btn btn-primary" @click="doCreate">儲存</button>
-    <button type="button" class="btn btn-primary" @click="doUpdateSave" v-show="isShowButton">
-      編輯完成
-    </button>
+  <div class="right">
+    <div class="mb-3" style="width: 300px">
+      <h1>請填寫代辦事項</h1>
+      <label class="form-label">姓名</label>
+      <input type="test" class="form-control" v-model="name" />
+      <label for="exampleFormControlInput1" class="form-label">代辦標題</label>
+      <input type="test" class="form-control" v-model="title" />
+      <label class="form-label">代辦內容</label>
+      <textarea class="form-control" rows="3" v-model="content"></textarea><br />
+      <button type="button" class="btn btn-primary" @click="doCreate" v-show="!isShowButton">
+        儲存
+      </button>
+      <button type="button" class="btn btn-primary" @click="doUpdateSave" v-show="isShowButton">
+        編輯完成
+      </button>
+    </div>
   </div>
-  <table class="table">
-    <thead>
-      <tr>
-        <th scope="col">Name</th>
-        <th scope="col">Title</th>
-        <th scope="col">Content</th>
-        <th scope="col">AddTime</th>
-        <th scope="col"></th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr v-for="data in AllData" :key="data.todoId">
-        <td>{{ data.name }}</td>
-        <td>{{ data.title }}</td>
-        <td>{{ data.todoContent }}</td>
+  <div class="left">
+    <div
+      v-for="data in AllData"
+      :key="data.todoId"
+      class="info-box"
+      style="
+        width: 720px;
+        height: 180px;
+        border-style: solid;
+        padding: 5px;
+        border-radius: 8px;
+        border-color: #c0c0c0;
+      "
+    >
+      <p>
+        <span v-if="data.isComplete == 'Y'">✅ </span><span v-else>❗ </span> {{ data.name }}/{{
+          data.title
+        }}<span style="float: right" v-if="data.isComplete == 'Y'">|已完成 </span
+        ><span style="float: right" v-else>未完成 </span>
+        <span style="float: right" v-if="data.completeTime">{{
+          moment(data.completeTime).format('YYYY/MM/DD HH:mm:ss')
+        }}</span>
+      </p>
+      <p>{{ data.todoContent }}</p>
 
-        <td>{{ data.addTime }}</td>
-        <td><span v-show="data.isComplete == 'Y'">已完成</span></td>
+      <div class="d-grid gap-2 d-md-flex justify-content-md-end">
         <button
-          v-show="data.isComplete != 'Y'"
+          class="btn btn-primary me-md-2"
           type="button"
+          style="text-align: end"
+          @click="doUpdate(data)"
+        >
+          編輯
+        </button>
+        <button class="btn btn-primary" @click="doDelete(data.todoId)" type="button">刪除</button>
+        <button
           class="btn btn-primary"
+          type="button"
+          v-if="data.isComplete != 'Y'"
           @click="isComplete(data.todoId)"
         >
           完成
         </button>
-        <button type="button" class="btn btn-primary" @click="doDelete(data.todoId)">刪除</button>
-        <button type="button" class="btn btn-primary" @click="doUpdate(data)">編輯</button>
-      </tr>
-    </tbody>
-  </table>
+
+        <button v-else type="button" class="btn btn-secondary" disabled>完成</button>
+      </div>
+    </div>
+  </div>
 </template>
+<style>
+.container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.right {
+  flex: 1;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+
+.left {
+  flex: 2;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+}
+</style>
