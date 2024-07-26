@@ -152,19 +152,7 @@ async function doUpdateSave() {
     </div>
   </div>
   <div class="left">
-    <div
-      v-for="data in AllData"
-      :key="data.todoId"
-      class="info-box"
-      style="
-        width: 720px;
-        height: 180px;
-        border-style: solid;
-        padding: 5px;
-        border-radius: 8px;
-        border-color: #c0c0c0;
-      "
-    >
+    <div v-for="data in AllData" :key="data.todoId" class="info-box">
       <p>
         <span v-if="data.isComplete == 'Y'">✅ </span><span v-else>❗ </span> {{ data.name }}/{{
           data.title
@@ -221,5 +209,13 @@ async function doUpdateSave() {
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   padding: 20px;
+}
+.info-box {
+  width: 720px;
+  height: 180px;
+  border-style: solid;
+  padding: 5px;
+  border-radius: 8px;
+  border-color: #c0c0c0;
 }
 </style>
